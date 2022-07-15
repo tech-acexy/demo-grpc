@@ -1,1 +1,1 @@
-# demo-grpc
+# demo-java-grpc

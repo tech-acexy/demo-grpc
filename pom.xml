@@ -9,7 +9,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <grpc.version>1.47.0</grpc.version>
-        <protobuf.version>3.11.0</protobuf.version>
+
+        <protoc.version>3.21.2</protoc.version>
+        <protoc.gen.grpc.java.version>1.29.0</protoc.gen.grpc.java.version>
+
+        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -34,7 +38,37 @@
     </dependencies>
 
     <build>
+
+        <extensions><!-- 此插件可以检测当前系统信息 -->
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>${os-maven-plugin.version}</version>
+            </extension>
+        </extensions>
+
         <plugins>
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
+                <configuration>
+                    <protocArtifact>com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}
+                    </protocArtifact>
+                    <pluginId>grpc-java</pluginId>
+                    <pluginArtifact>
+                        io.grpc:protoc-gen-grpc-java:${protoc.gen.grpc.java.version}:exe:${os.detected.classifier}
+                    </pluginArtifact>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>compile-custom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin><!-- 指定JDK版本 -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -47,5 +81,6 @@
             </plugin>
 
         </plugins>
+
     </build>
 </project>

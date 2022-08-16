@@ -7,7 +7,6 @@ public class ClientDemo {
 
     static ManagedChannel managedChannel = ManagedChannelBuilder.forAddress("localhost",9981).usePlaintext().build();
 
-
     public static void main(String[] args) {
 
     }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"demo.grpc/proto"
+	"demo.grpc/pb/user"
 	"google.golang.org/grpc"
 	"net"
 	"sync"
@@ -11,12 +11,12 @@ import (
 var once sync.Once
 
 type UserServiceImpl struct {
-	proto.UnimplementedUserServiceServer
+	pbuser.UnimplementedUserServiceServer
 }
 
-func (*UserServiceImpl) QueryById(context.Context, *proto.Request) (*proto.Response, error) {
-	return &proto.Response{
-		Users: []*proto.User{{
+func (*UserServiceImpl) QueryById(context.Context, *pbuser.Request) (*pbuser.Response, error) {
+	return &pbuser.Response{
+		Users: []*pbuser.User{{
 			Name: "maacsek",
 		}},
 	}, nil
@@ -25,7 +25,7 @@ func (*UserServiceImpl) QueryById(context.Context, *proto.Request) (*proto.Respo
 func main() {
 	once.Do(func() {
 		server := grpc.NewServer()
-		proto.RegisterUserServiceServer(server, &UserServiceImpl{})
+		pbuser.RegisterUserServiceServer(server, &UserServiceImpl{})
 		lis, _ := net.Listen("tcp", ":5645")
 		_ = server.Serve(lis)
 	})

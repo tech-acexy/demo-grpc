@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"demo.grpc/proto"
+	"demo.grpc/pb/user"
 	"encoding/json"
 	"fmt"
 	"google.golang.org/grpc"
@@ -14,11 +14,11 @@ import (
 func TestClient(t *testing.T) {
 	conn, _ := grpc.Dial("127.0.0.1:5645", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	defer conn.Close()
-	userService := proto.NewUserServiceClient(conn)
+	userService := pbuser.NewUserServiceClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	user, err := userService.QueryById(ctx, &proto.Request{Id: 123})
+	user, err := userService.QueryById(ctx, &pbuser.Request{Id: 123})
 	if err != nil {
 		return
 	}

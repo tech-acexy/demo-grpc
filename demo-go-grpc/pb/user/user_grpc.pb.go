@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
+	// 通过ID查询用户
 	QueryById(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
 }
 
@@ -35,7 +36,7 @@ func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 
 func (c *userServiceClient) QueryById(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
 	out := new(Response)
-	err := c.cc.Invoke(ctx, "/UserService/QueryById", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pbuser.UserService/QueryById", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +47,7 @@ func (c *userServiceClient) QueryById(ctx context.Context, in *Request, opts ...
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
+	// 通过ID查询用户
 	QueryById(context.Context, *Request) (*Response, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
@@ -80,7 +82,7 @@ func _UserService_QueryById_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/UserService/QueryById",
+		FullMethod: "/pbuser.UserService/QueryById",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).QueryById(ctx, req.(*Request))
@@ -92,7 +94,7 @@ func _UserService_QueryById_Handler(srv interface{}, ctx context.Context, dec fu
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "UserService",
+	ServiceName: "pbuser.UserService",
 	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

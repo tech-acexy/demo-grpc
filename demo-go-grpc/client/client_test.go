@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"demo.grpc/pb/user"
+	pbuser "demo.grpc/pb/user"
 	"encoding/json"
 	"fmt"
 	"google.golang.org/grpc"
@@ -11,8 +11,13 @@ import (
 	"time"
 )
 
-func TestClient(t *testing.T) {
-	conn, _ := grpc.Dial("127.0.0.1:5645", grpc.WithTransportCredentials(insecure.NewCredentials()))
+const (
+	golangPort = "5645"
+	javaPort   = "5678"
+)
+
+func callServer(port string) {
+	conn, _ := grpc.Dial("127.0.0.1:"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	defer conn.Close()
 	userService := pbuser.NewUserServiceClient(conn)
 
@@ -25,4 +30,9 @@ func TestClient(t *testing.T) {
 
 	bytes, err := json.Marshal(user)
 	fmt.Println(string(bytes))
+}
+
+func TestClient(t *testing.T) {
+	callServer(golangPort)
+	callServer(javaPort)
 }

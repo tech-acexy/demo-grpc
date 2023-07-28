@@ -7,9 +7,3 @@
   
     brew install protobuf
     ```
-
-- 运行插件
-
-  ```
-  `go env GOPATH | cut -d ':' -f1`/pkg/bin/protoc 
-  ```

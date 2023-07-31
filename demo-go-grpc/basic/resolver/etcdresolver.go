@@ -143,6 +143,7 @@ func RegisterEtcdInstance(ctx context.Context, target, instanceId, address strin
 	if err != nil {
 		return err
 	}
+
 	alive, err := etcd.KeepAlive(ctx, lease.ID)
 	if err != nil {
 		return err

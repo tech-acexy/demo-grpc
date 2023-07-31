@@ -3,18 +3,19 @@ package resolver
 import (
 	"context"
 	"fmt"
-	client "go.etcd.io/etcd/client/v3"
+	etcdClient "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/naming/endpoints"
 	"google.golang.org/grpc/codes"
 	gResolver "google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/status"
+	"strings"
 	"sync"
 )
 
 const EtcdScheme = "etcd"
 
 type etcdBuilder struct {
-	c *client.Client
+	c *etcdClient.Client
 }
 
 func (b etcdBuilder) Build(target gResolver.Target, cc gResolver.ClientConn, opts gResolver.BuildOptions) (gResolver.Resolver, error) {
@@ -44,7 +45,7 @@ func (b etcdBuilder) Scheme() string {
 }
 
 type resolver struct {
-	c      *client.Client
+	c      *etcdClient.Client
 	target string
 	cc     gResolver.ClientConn
 	wch    endpoints.WatchChannel
@@ -82,18 +83,16 @@ func (r *resolver) watch() {
 }
 
 func convertToGRPCAddress(ups map[string]*endpoints.Update) []gResolver.Address {
-	var addrs []gResolver.Address
+	var addresses []gResolver.Address
 	for _, up := range ups {
 		addr := gResolver.Address{
 			Addr: up.Endpoint.Addr,
 		}
-		addrs = append(addrs, addr)
+		addresses = append(addresses, addr)
 	}
-	return addrs
+	return addresses
 }
 
-// ResolveNow is a no-op here.
-// It's just a hint, resolver can ignore this if it's not necessary.
 func (r *resolver) ResolveNow(gResolver.ResolveNowOptions) {}
 
 func (r *resolver) Close() {
@@ -105,10 +104,59 @@ type Etcd struct {
 	EtcdUrls []string
 }
 
+var etcd *etcdClient.Client
+var managers map[string]endpoints.Manager
+
 func (e Etcd) NewResolver() (gResolver.Builder, error) {
-	etcdClient, err := client.NewFromURLs(e.EtcdUrls)
+	var err error
+	etcd, err = etcdClient.NewFromURLs(e.EtcdUrls)
 	if err != nil {
 		fmt.Printf("%+v\n", err)
 	}
-	return etcdBuilder{c: etcdClient}, nil
+	managers = make(map[string]endpoints.Manager, 1)
+	return &etcdBuilder{c: etcd}, nil
+}
+
+// RegisterEtcdInstance ttl (s)
+func RegisterEtcdInstance(ctx context.Context, target, instanceId, address string, ttl int64) error {
+	manager := managers[target]
+	if manager == nil {
+		var err error
+		manager, err = endpoints.NewManager(etcd, target)
+		if err != nil {
+			return err
+		}
+		managers[target] = manager
+	}
+
+	if strings.HasSuffix(target, "/") {
+		target += instanceId
+	} else {
+		target += "/" + instanceId
+	}
+
+	lease, err := etcd.Grant(context.TODO(), ttl)
+	if err != nil {
+		return err
+	}
+	err = manager.AddEndpoint(context.TODO(), target, endpoints.Endpoint{Addr: address}, etcdClient.WithLease(lease.ID))
+	if err != nil {
+		return err
+	}
+	alive, err := etcd.KeepAlive(ctx, lease.ID)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-alive:
+			}
+		}
+	}()
+
+	return nil
 }

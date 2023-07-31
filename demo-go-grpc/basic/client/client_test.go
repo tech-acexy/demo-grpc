@@ -2,12 +2,15 @@ package client
 
 import (
 	"context"
-	resolver "demo.grpc/basic/resolver"
+	"demo.grpc/basic/resolver"
 	pbuser "demo.grpc/pb/user"
 	"encoding/json"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"os"
+	"os/signal"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -16,7 +19,7 @@ var userService pbuser.UserServiceClient
 
 func useStaticResolver() (*Conn, error) {
 	return NewClientConn(
-		resolver.StaticScheme+"///user",
+		resolver.StaticScheme+":///user",
 		resolver.Static{Addresses: map[string][]string{
 			"user": {
 				"127.0.0.1:5645",
@@ -29,34 +32,17 @@ func useStaticResolver() (*Conn, error) {
 	)
 }
 
-func useEtcdResolver() (*grpc.ClientConn, error) {
-
-	var iResolver resolver.IResolver
-
-	iResolver = resolver.Etcd{
-		EtcdUrls: []string{"http://localhost:2379"},
-	}
-
-	etcdResolver, err := iResolver.NewResolver()
-
-	if err != nil {
-		fmt.Printf("%+v\n", err)
-		return nil, nil
-	}
-
-	return grpc.Dial(
-		"etcd:///service/user",
+func useEtcdResolver() (*Conn, error) {
+	return NewClientConn(
+		resolver.EtcdScheme+":///user",
+		resolver.Etcd{EtcdUrls: []string{"http://localhost:2379"}},
+		true,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithResolvers(etcdResolver),
+		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`),
 	)
-
 }
 
-func callServer() {
-	coon, err := useStaticResolver()
-	userService = pbuser.NewUserServiceClient(coon.gCon)
-
-	//defer conn.Close()
+func userCall(userService pbuser.UserServiceClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	user, err := userService.QueryById(ctx, &pbuser.Request{Id: 123})
@@ -68,14 +54,53 @@ func callServer() {
 	fmt.Println(string(bytes))
 }
 
-func TestClient(t *testing.T) {
-
+func doRequest(ctx context.Context, conn *Conn) {
+	userService = pbuser.NewUserServiceClient(conn.gCon)
 	go func() {
-		for i := 1; i <= 100; i++ {
-			callServer()
+		for {
+			userCall(userService)
 			time.Sleep(time.Second)
+			select {
+			case <-ctx.Done():
+				//_ = conn.CloseGCon()
+				break
+			default:
+
+			}
 		}
 	}()
+}
 
-	time.Sleep(time.Hour)
+func TestStaticClient(t *testing.T) {
+	conn, err := useStaticResolver()
+	if err != nil {
+		fmt.Printf("%+v\n", err)
+		return
+	}
+	doRequest(context.Background(), conn)
+}
+
+func TestEtcdClient(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		time.Sleep(time.Second * 5)
+		fmt.Println("register new instance")
+		_ = resolver.RegisterEtcdInstance(ctx, "user", "1", "localhost:5678", 3)
+		time.Sleep(time.Second * 15)
+		fmt.Println("stop instance keepalive")
+		cancel()
+	}()
+
+	conn, err := useEtcdResolver()
+	if err != nil {
+		fmt.Printf("%+v\n", err)
+		return
+	}
+	doRequest(ctx, conn)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
 }

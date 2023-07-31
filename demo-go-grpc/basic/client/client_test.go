@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"os"
 	"os/signal"
 	"syscall"
@@ -47,7 +48,9 @@ func userCall(userService pbuser.UserServiceClient) {
 	defer cancel()
 	user, err := userService.QueryById(ctx, &pbuser.Request{Id: 123})
 	if err != nil {
-		fmt.Printf("QueryById %+v\n", err)
+		statusError := status.Convert(err)
+		fmt.Printf("%+v\n", statusError.Code())
+		fmt.Printf("QueryById Error %T %+v\n", err, err)
 		return
 	}
 	bytes, err := json.Marshal(user)
@@ -77,7 +80,12 @@ func TestStaticClient(t *testing.T) {
 		fmt.Printf("%+v\n", err)
 		return
 	}
-	doRequest(context.Background(), conn)
+	ctx, cancel := context.WithCancel(context.Background())
+	doRequest(ctx, conn)
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+	cancel()
 }
 
 func TestEtcdClient(t *testing.T) {
@@ -98,9 +106,12 @@ func TestEtcdClient(t *testing.T) {
 		fmt.Printf("%+v\n", err)
 		return
 	}
+
 	doRequest(ctx, conn)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
+
+	// 可以等待相关程序停止的回执再退出主程序
 }

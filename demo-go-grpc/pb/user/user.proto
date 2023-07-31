@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package pbuser;
 
+import "pb/validate.proto";
+
 // 控制生成的文件所属go的package
 // 在生成的文件中声明 package pbuser
 option go_package = "/pbuser";
@@ -17,7 +19,8 @@ enum Sex {
 }
 
 message Request {
-  uint64 id = 1;
+  uint64 id = 1 [(validate.rules).uint64.lte = 10];
+  string name = 2 [(validate.rules).string.min_len = 2];
 }
 
 message Response {

@@ -18,6 +18,10 @@ type UserServiceImpl struct {
 
 func (*UserServiceImpl) QueryById(ctx context.Context, request *pbuser.Request) (*pbuser.Response, error) {
 	fmt.Println("Get Input UserId " + strconv.FormatUint(request.Id, 10))
+	err := request.Validate()
+	if err != nil {
+		return nil, err
+	}
 	return &pbuser.Response{
 		Users: []*pbuser.User{{
 			Name: "maacsek",

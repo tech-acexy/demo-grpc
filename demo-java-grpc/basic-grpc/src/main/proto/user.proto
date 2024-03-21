@@ -10,14 +10,14 @@ option java_package = "cn.acexy.tech.grpc.pb.user";
 option java_outer_classname = "UserProto";
 option java_multiple_files = true;
 
-
 enum Sex {
   M = 0;
   W = 1;
 }
 
 message Request {
-  uint64 id = 1;
+  uint64 id = 1 ;
+  string name = 2 ;
 }
 
 message Response {
@@ -36,4 +36,5 @@ service UserService {
   //  通过ID查询用户
   rpc QueryById(Request) returns (Response) {}
 }
+
 

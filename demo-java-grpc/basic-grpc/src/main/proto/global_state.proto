@@ -3,7 +3,10 @@ syntax = "proto3";
 import "google/api/annotations.proto";
 import "global_state_types.proto";
 
-package com.shit.wallet.block.rpc.spacemesh.sdk;
+package spacemesh.v1;
+
+option java_package = "com.shit.wallet.block.service.endpoint.spacemesh.sdk";
+
 
 // Readonly global state data - current and historical.
 // Global state data is data which is not explicitly stored in the mesh.

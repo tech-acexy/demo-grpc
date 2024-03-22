@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package com.shit.wallet.block.rpc.spacemesh.sdk;
+package spacemesh.v1;
+option java_package = "com.shit.wallet.block.service.endpoint.spacemesh.sdk";
+
 
 message SimpleInt {
     uint64 value = 1;

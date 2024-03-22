@@ -22,9 +22,9 @@ public class GrpcClientTest {
 
     @Test
     public void callServer() {
-        Response response = userService(golangPort).queryById(Request.newBuilder().setId(321L).build());
+        Response response = userService(javaPort).queryById(Request.newBuilder().setId(321L).build());
         System.out.println(response.toString());
-        response = userService(javaPort).queryById(Request.newBuilder().setId(321L).build());
-        System.out.println(response.toString());
+//        response = userService(golangPort).queryById(Request.newBuilder().setId(321L).build());
+//        System.out.println(response.toString());
     }
 }
